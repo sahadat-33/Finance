@@ -83,8 +83,12 @@ fun FloatingCapsuleNavigationBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 8.dp)
-            .navigationBarsPadding(),
+            .padding(
+                start = 16.dp,
+                end = 16.dp,
+                top = 0.dp,
+                bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 8.dp
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Main floating capsule container (4 items)

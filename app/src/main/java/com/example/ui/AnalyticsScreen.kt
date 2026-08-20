@@ -166,6 +166,9 @@ fun AnalyticsScreen(viewModel: FinanceViewModel) {
                 }
             }
         }
+
+        // Space at the bottom for safety over floating capsule navigation bar
+        Spacer(modifier = Modifier.height(96.dp))
     }
 }
 
@@ -413,9 +416,6 @@ fun IncomeSpentAnalysisCard(viewModel: FinanceViewModel) {
                 }
             }
         }
-
-        // Space at the bottom for safety over floating capsule navigation bar
-        Spacer(modifier = Modifier.height(96.dp))
     }
 }
 

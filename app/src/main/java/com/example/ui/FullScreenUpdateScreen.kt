@@ -34,6 +34,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.BuildConfig
 import com.example.R
 import com.example.data.UpdateInfo
+import com.example.data.UpdateInstaller
 
 @Composable
 fun FullScreenUpdateScreen(
@@ -191,22 +192,7 @@ fun FullScreenUpdateScreen(
                 // "Update now" Button
                 Button(
                     onClick = {
-                        try {
-                            val request = DownloadManager.Request(Uri.parse(updateInfo.downloadUrl))
-                            request.setTitle("Finance Tracker Update")
-                            request.setDescription("Downloading $cleanNewVersion...")
-                            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                            request.setDestinationInExternalPublicDir(
-                                Environment.DIRECTORY_DOWNLOADS,
-                                "Finance-Tracker_${updateInfo.version}.apk"
-                            )
-                            val downloadManager =
-                                context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                            downloadManager.enqueue(request)
-                            Toast.makeText(context, "Download started in background", Toast.LENGTH_SHORT).show()
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "Could not start download: ${e.message}", Toast.LENGTH_LONG).show()
-                        }
+                        UpdateInstaller.startDownload(context, updateInfo)
                         onUpdate()
                         onDismiss()
                     },

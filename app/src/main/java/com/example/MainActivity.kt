@@ -47,10 +47,12 @@ import com.example.ui.OthersScreen
 import com.example.ui.UpdateScreen
 import com.example.ui.AboutScreen
 import com.example.ui.FullScreenUpdateScreen
+import com.example.ui.InstallPermissionDialog
 import com.example.ui.ReleaseNotesScreen
 import com.example.ui.TimelineScreen
 import com.example.ui.theme.FinanceTrackerTheme
 import com.example.viewmodel.FinanceViewModel
+import com.example.data.UpdateInstaller
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -109,6 +111,7 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                         viewModel.lockApp()
                     } else if (event == Lifecycle.Event.ON_RESUME) {
                         viewModel.triggerFetchFromCloud()
+                        UpdateInstaller.onResumeCheck(this@MainActivity)
                     }
                 }
                 lifecycleOwner.lifecycle.addObserver(observer)
@@ -116,6 +119,8 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                     lifecycleOwner.lifecycle.removeObserver(observer)
                 }
             }
+
+            val installPermissionRequest by UpdateInstaller.permissionRequest.collectAsState()
 
             FinanceTrackerTheme(darkTheme = effectiveDarkTheme, themeName = appTheme) {
                 val rootNavController = rememberNavController()
@@ -397,6 +402,18 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
             },
             onUpdate = {
                 viewModel.dismissUpdateDialog(availableUpdate!!.version)
+            }
+        )
+    }
+
+    if (installPermissionRequest != null) {
+        InstallPermissionDialog(
+            request = installPermissionRequest!!,
+            onAllow = {
+                UpdateInstaller.onPermissionAllow(this@MainActivity)
+            },
+            onCancel = { dontAskAgain ->
+                UpdateInstaller.onPermissionCancel(this@MainActivity, dontAskAgain)
             }
         )
     }

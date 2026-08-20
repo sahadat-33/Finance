@@ -1,16 +1,12 @@
 package com.example.ui
 
-import android.app.DownloadManager
-import android.content.Context
-import android.net.Uri
-import android.os.Environment
-import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,7 +20,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.BuildConfig
 import com.example.R
+import com.example.data.InstallPermissionRequest
 import com.example.data.UpdateInfo
+import com.example.data.UpdateInstaller
 
 @Composable
 fun UpdateDialog(
@@ -150,22 +148,7 @@ fun UpdateDialog(
 
                     TextButton(
                         onClick = {
-                            try {
-                                val request = DownloadManager.Request(Uri.parse(updateInfo.downloadUrl))
-                                request.setTitle("Finance Tracker Update")
-                                request.setDescription("Downloading $cleanNewVersion...")
-                                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                                request.setDestinationInExternalPublicDir(
-                                    Environment.DIRECTORY_DOWNLOADS,
-                                    "Finance-Tracker_${updateInfo.version}.apk"
-                                )
-                                val downloadManager =
-                                    context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                                downloadManager.enqueue(request)
-                                Toast.makeText(context, "Download started in background", Toast.LENGTH_SHORT).show()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Could not start download: ${e.message}", Toast.LENGTH_LONG).show()
-                            }
+                            UpdateInstaller.startDownload(context, updateInfo)
                             onUpdate()
                             onDismiss()
                         },
@@ -181,6 +164,74 @@ fun UpdateDialog(
             }
         }
     }
+}
+
+@Composable
+fun InstallPermissionDialog(
+    request: InstallPermissionRequest,
+    onAllow: () -> Unit,
+    onCancel: (dontAskAgain: Boolean) -> Unit
+) {
+    var dontAskAgain by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = { onCancel(dontAskAgain) },
+        title = {
+            Text(
+                text = "Allow Finance Tracker to install updates",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "To automatically launch the installer for updated version ${request.version}, please allow Finance Tracker to install unknown apps in settings.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { dontAskAgain = !dontAskAgain }
+                        .padding(vertical = 4.dp)
+                ) {
+                    Checkbox(
+                        checked = dontAskAgain,
+                        onCheckedChange = { dontAskAgain = it },
+                        modifier = Modifier.testTag("dont_ask_again_checkbox")
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Don't ask again",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onAllow,
+                modifier = Modifier.testTag("allow_install_permission_button")
+            ) {
+                Text("Allow", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = { onCancel(dontAskAgain) },
+                modifier = Modifier.testTag("cancel_install_permission_button")
+            ) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(20.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    )
 }
 
 // Keep backward compatibility alias for any existing reference
