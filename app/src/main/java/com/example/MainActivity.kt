@@ -47,6 +47,10 @@ import com.example.ui.OthersScreen
 import com.example.ui.UpdateScreen
 import com.example.ui.AboutScreen
 import com.example.ui.FullScreenUpdateScreen
+import com.example.ui.GoalsScreen
+import com.example.ui.GoalDetailScreen
+import com.example.ui.NewGoalPresetScreen
+import com.example.ui.NewGoalDetailsScreen
 import com.example.ui.InstallPermissionDialog
 import com.example.ui.ReleaseNotesScreen
 import com.example.ui.TimelineScreen
@@ -311,9 +315,120 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
                                     viewModel = viewModel,
                                     onNavigateToProfile = { navController.navigate("profile") },
                                     onNavigateToAuth = { rootNavController.navigate("welcome_auth") },
+                                    onNavigateToManageCategoryNames = { navController.navigate("manage_category_names") },
+                                    onNavigateToGoals = { navController.navigate("goals") },
                                     onNavigateToOthers = { navController.navigate("others") },
                                     onNavigateToDataManagement = { navController.navigate("data_management") },
                                     onNavigateToTheme = { navController.navigate("theme") }
+                                )
+                            }
+                            composable("manage_category_names") {
+                                com.example.ui.ManageCategoryNamesScreen(
+                                    viewModel = viewModel,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+                            composable("goals") {
+                                GoalsScreen(
+                                    viewModel = viewModel,
+                                    onBack = { navController.popBackStack() },
+                                    onNavigateToNewGoal = { navController.navigate("new_goal") },
+                                    onNavigateToGoalDetail = { goalId ->
+                                        navController.navigate("goal_detail/$goalId")
+                                    }
+                                )
+                            }
+                            composable(
+                                route = "goal_detail/{goalId}",
+                                arguments = listOf(
+                                    androidx.navigation.navArgument("goalId") {
+                                        type = androidx.navigation.NavType.LongType
+                                        defaultValue = -1L
+                                    }
+                                )
+                            ) { backStackEntry ->
+                                val goalId = backStackEntry.arguments?.getLong("goalId") ?: -1L
+                                GoalDetailScreen(
+                                    goalId = goalId,
+                                    viewModel = viewModel,
+                                    onBack = { navController.popBackStack() },
+                                    onEditGoal = { id ->
+                                        navController.navigate("edit_goal/$id")
+                                    }
+                                )
+                            }
+                            composable(
+                                route = "edit_goal/{goalId}",
+                                arguments = listOf(
+                                    androidx.navigation.navArgument("goalId") {
+                                        type = androidx.navigation.NavType.LongType
+                                        defaultValue = -1L
+                                    }
+                                )
+                            ) { backStackEntry ->
+                                val goalId = backStackEntry.arguments?.getLong("goalId") ?: -1L
+                                val allGoals by viewModel.allGoals.collectAsState()
+                                val goal = allGoals.firstOrNull { it.id == goalId }
+                                if (goal != null) {
+                                    NewGoalDetailsScreen(
+                                        viewModel = viewModel,
+                                        existingGoal = goal,
+                                        onClose = { navController.popBackStack() },
+                                        onSaved = { navController.popBackStack() },
+                                        onDeleted = {
+                                            navController.popBackStack("goals", inclusive = false)
+                                        }
+                                    )
+                                } else {
+                                    LaunchedEffect(Unit) {
+                                        navController.popBackStack()
+                                    }
+                                }
+                            }
+                            composable("new_goal") {
+                                NewGoalPresetScreen(
+                                    onBack = { navController.popBackStack() },
+                                    onProceedToDetails = { name, iconKey, colorHex ->
+                                        val encodedName = java.net.URLEncoder.encode(name, "UTF-8")
+                                        val encodedIcon = java.net.URLEncoder.encode(iconKey, "UTF-8")
+                                        val encodedColor = java.net.URLEncoder.encode(colorHex, "UTF-8")
+                                        navController.navigate("new_goal_details/$encodedName/$encodedIcon/$encodedColor")
+                                    }
+                                )
+                            }
+                            composable(
+                                route = "new_goal_details/{name}/{iconKey}/{colorHex}",
+                                arguments = listOf(
+                                    androidx.navigation.navArgument("name") {
+                                        type = androidx.navigation.NavType.StringType
+                                        defaultValue = ""
+                                    },
+                                    androidx.navigation.navArgument("iconKey") {
+                                        type = androidx.navigation.NavType.StringType
+                                        defaultValue = "Flag"
+                                    },
+                                    androidx.navigation.navArgument("colorHex") {
+                                        type = androidx.navigation.NavType.StringType
+                                        defaultValue = "#4376F6"
+                                    }
+                                )
+                            ) { backStackEntry ->
+                                val rawName = backStackEntry.arguments?.getString("name") ?: ""
+                                val name = try { java.net.URLDecoder.decode(rawName, "UTF-8") } catch (e: Exception) { rawName }
+                                val iconKey = backStackEntry.arguments?.getString("iconKey") ?: "Flag"
+                                val colorHex = backStackEntry.arguments?.getString("colorHex") ?: "#4376F6"
+
+                                NewGoalDetailsScreen(
+                                    viewModel = viewModel,
+                                    initialName = name,
+                                    initialIconKey = iconKey,
+                                    initialColorHex = colorHex,
+                                    onClose = {
+                                        navController.popBackStack("goals", inclusive = false)
+                                    },
+                                    onSaved = {
+                                        navController.popBackStack("goals", inclusive = false)
+                                    }
                                 )
                             }
                             composable("theme") {

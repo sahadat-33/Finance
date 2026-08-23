@@ -179,7 +179,8 @@ interface FinanceDao {
     suspend fun getSavingsVaultByAssetType(assetType: String): SavingsVault?
 }
 
-@Database(entities = [Category::class, Transaction::class, SavingsVault::class], version = 7, exportSchema = false)
+@Database(entities = [Category::class, Transaction::class, SavingsVault::class, Goal::class], version = 8, exportSchema = false)
 abstract class FinanceDatabase : RoomDatabase() {
     abstract val dao: FinanceDao
+    abstract val goalDao: GoalDao
 }

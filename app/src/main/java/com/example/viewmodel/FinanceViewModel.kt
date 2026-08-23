@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.Category
 import com.example.data.FinanceRepository
+import com.example.data.Goal
 import com.example.data.SavingsVault
 import com.example.data.Transaction
 import kotlinx.coroutines.flow.*
@@ -327,6 +328,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         
     val allSavingsVault: StateFlow<List<SavingsVault>> = repository.getAllSavingsVault()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allGoals: StateFlow<List<Goal>> = repository.getAllGoals()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
         
     val dynamicVaultBalances: StateFlow<List<SavingsVault>> = allSavingsVault
         .map { vaults ->
@@ -353,7 +357,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             if (tx.type == "INCOME") {
                 totalEarnings += tx.amount
             } else if (tx.type == "EXPENSE") {
-                if (tx.categoryName == "Savings") {
+                if (tx.categoryName == "Savings" || tx.categoryName == "Goal Savings") {
                     totalSavingsContributed += tx.amount
                 } else {
                     totalExpenses += tx.amount
@@ -363,7 +367,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
         val cashBalance = totalEarnings - totalExpenses - totalSavingsContributed
 
-        val expenseTransactions = monthlyTransactions.filter { it.type == "EXPENSE" && it.categoryName != "Savings" }
+        val expenseTransactions = monthlyTransactions.filter { it.type == "EXPENSE" && it.categoryName != "Savings" && it.categoryName != "Goal Savings" }
         val categoryExpenseMap = expenseTransactions.groupBy { it.categoryName }
             .mapValues { entry -> entry.value.sumOf { it.amount } }
         val sortedCategoryExpenses = categoryExpenseMap.entries
@@ -547,6 +551,24 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun addGoal(goal: Goal) {
+        viewModelScope.launch {
+            repository.insertGoal(goal)
+        }
+    }
+
+    fun updateGoal(goal: Goal) {
+        viewModelScope.launch {
+            repository.updateGoal(goal)
+        }
+    }
+
+    fun deleteGoal(goal: Goal) {
+        viewModelScope.launch {
+            repository.deleteGoal(goal)
+        }
+    }
+
     fun getYearlySummary(year: Int, transactions: List<Transaction> = allTransactions.value): YearlySummary {
         val allTx = transactions
         val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
@@ -574,7 +596,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 if (tx.type == "INCOME") {
                     recv += tx.amount
                 } else if (tx.type == "EXPENSE") {
-                    if (tx.categoryName == "Savings") {
+                    if (tx.categoryName == "Savings" || tx.categoryName == "Goal Savings") {
                         sav += tx.amount
                     } else {
                         exp += tx.amount

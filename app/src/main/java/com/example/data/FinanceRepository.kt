@@ -18,6 +18,7 @@ class FinanceRepository(private val context: Context) {
     }
 
     val dao: FinanceDao get() = database.dao
+    val goalDao: GoalDao get() = database.goalDao
 
     val authManager by lazy { FirebaseAuthManager(context) }
     val cloudSyncManager by lazy { CloudSyncManager(dao) }
@@ -145,6 +146,11 @@ class FinanceRepository(private val context: Context) {
     fun getAllTransactions(): Flow<List<Transaction>> = dao.getAllTransactionsFlow()
     fun getAllCategories(): Flow<List<Category>> = dao.getAllCategoriesFlow()
     fun getAllSavingsVault(): Flow<List<SavingsVault>> = dao.getAllSavingsVaultFlow()
+    fun getAllGoals(): Flow<List<Goal>> = goalDao.getAllGoalsFlow()
+    fun getGoalsByStatus(status: String): Flow<List<Goal>> = goalDao.getGoalsByStatusFlow(status)
+    suspend fun insertGoal(goal: Goal): Long = withContext(Dispatchers.IO) { goalDao.insertGoal(goal) }
+    suspend fun updateGoal(goal: Goal) = withContext(Dispatchers.IO) { goalDao.updateGoal(goal) }
+    suspend fun deleteGoal(goal: Goal) = withContext(Dispatchers.IO) { goalDao.deleteGoal(goal) }
 
     suspend fun insertTransaction(transaction: Transaction) = withContext(Dispatchers.IO) {
         dao.insertTransaction(transaction)
@@ -383,7 +389,7 @@ class FinanceRepository(private val context: Context) {
                 return v.assetType
             }
         }
-        return allVaults.firstOrNull()?.assetType
+        return null
     }
 
 

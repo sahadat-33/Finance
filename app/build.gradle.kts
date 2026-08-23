@@ -15,8 +15,8 @@ android {
     applicationId = "com.aistudio.takatracker.pvksrt"
     minSdk = 24
     targetSdk = 36
-    versionCode = 5
-    versionName = "4.1.5"
+    versionCode = 6
+    versionName = "4.2.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

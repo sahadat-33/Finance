@@ -1,18 +1,24 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
@@ -27,9 +33,12 @@ fun <T> ReorderableColumnList(
     var localItems by remember(items) { mutableStateOf(items) }
     var draggingItemKey by remember { mutableStateOf<Any?>(null) }
     var dragOffsetY by remember { mutableStateOf(0f) }
+    val coroutineScope = rememberCoroutineScope()
 
-    // Store item heights and parent Y coordinates
+    // Store item heights
     val itemHeights = remember { mutableStateMapOf<Any, Float>() }
+    // Store animated displacement offsets for non-dragging items when swapped
+    val itemDisplacements = remember { mutableStateMapOf<Any, Animatable<Float, *>>() }
 
     Column(
         modifier = modifier,
@@ -40,12 +49,14 @@ fun <T> ReorderableColumnList(
             val isDragging = draggingItemKey == itemKey
 
             val animatedElevation by animateDpAsState(
-                targetValue = if (isDragging) 8.dp else 0.dp,
+                targetValue = if (isDragging) 10.dp else 0.dp,
+                animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
                 label = "reorder_elevation"
             )
 
             val animatedScale by animateFloatAsState(
-                targetValue = if (isDragging) 1.03f else 1.0f,
+                targetValue = if (isDragging) 1.04f else 1.0f,
+                animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
                 label = "reorder_scale"
             )
 
@@ -72,29 +83,65 @@ fun <T> ReorderableColumnList(
                         val currentIndex = localItems.indexOfFirst { key(it) == itemKey }
                         if (currentIndex != -1) {
                             val currentItemHeight = itemHeights[itemKey] ?: 60f
-                            val threshold = currentItemHeight * 0.6f
+                            val threshold = currentItemHeight * 0.5f
 
                             if (dragOffsetY > threshold && currentIndex < localItems.size - 1) {
                                 // Move down
                                 val targetIndex = currentIndex + 1
+                                val displacedKey = key(localItems[targetIndex])
                                 val mutable = localItems.toMutableList()
                                 val moved = mutable.removeAt(currentIndex)
                                 mutable.add(targetIndex, moved)
                                 localItems = mutable
                                 dragOffsetY -= currentItemHeight
+
+                                // Animate the displaced item sliding up into its new slot
+                                coroutineScope.launch {
+                                    val anim = (itemDisplacements[displacedKey] as? Animatable<Float, *>)
+                                        ?: Animatable(0f).also { itemDisplacements[displacedKey] = it }
+                                    @Suppress("UNCHECKED_CAST")
+                                    val floatAnim = anim as Animatable<Float, androidx.compose.animation.core.AnimationVector1D>
+                                    floatAnim.snapTo(currentItemHeight)
+                                    floatAnim.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioLowBouncy,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        )
+                                    )
+                                }
                             } else if (dragOffsetY < -threshold && currentIndex > 0) {
                                 // Move up
                                 val targetIndex = currentIndex - 1
+                                val displacedKey = key(localItems[targetIndex])
                                 val mutable = localItems.toMutableList()
                                 val moved = mutable.removeAt(currentIndex)
                                 mutable.add(targetIndex, moved)
                                 localItems = mutable
                                 dragOffsetY += currentItemHeight
+
+                                // Animate the displaced item sliding down into its new slot
+                                coroutineScope.launch {
+                                    val anim = (itemDisplacements[displacedKey] as? Animatable<Float, *>)
+                                        ?: Animatable(0f).also { itemDisplacements[displacedKey] = it }
+                                    @Suppress("UNCHECKED_CAST")
+                                    val floatAnim = anim as Animatable<Float, androidx.compose.animation.core.AnimationVector1D>
+                                    floatAnim.snapTo(-currentItemHeight)
+                                    floatAnim.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioLowBouncy,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        )
+                                    )
+                                }
                             }
                         }
                     }
                 )
             }
+
+            val nonDragOffset = (itemDisplacements[itemKey]?.value as? Float) ?: 0f
 
             Box(
                 modifier = Modifier
@@ -107,13 +154,15 @@ fun <T> ReorderableColumnList(
                         if (isDragging) {
                             IntOffset(0, dragOffsetY.roundToInt())
                         } else {
-                            IntOffset(0, 0)
+                            IntOffset(0, nonDragOffset.roundToInt())
                         }
                     }
                     .graphicsLayer {
                         scaleX = animatedScale
                         scaleY = animatedScale
                         shadowElevation = animatedElevation.toPx()
+                        shape = RoundedCornerShape(12.dp)
+                        clip = false
                     }
             ) {
                 itemContent(item, isDragging, dragHandleModifier)

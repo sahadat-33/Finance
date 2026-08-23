@@ -49,12 +49,34 @@ object DatabaseProvider {
                 db.execSQL("UPDATE savings_vault SET sortOrder = id")
             }
         }
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `goals` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `targetAmount` REAL NOT NULL,
+                        `savedAmount` REAL NOT NULL,
+                        `deadlineDate` INTEGER NOT NULL,
+                        `colorHex` TEXT NOT NULL,
+                        `iconKey` TEXT NOT NULL,
+                        `note` TEXT,
+                        `status` TEXT NOT NULL,
+                        `lastAddedAmount` REAL NOT NULL,
+                        `lastAddedDate` INTEGER,
+                        `createdAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
         return Room.databaseBuilder(
             context.applicationContext,
             FinanceDatabase::class.java,
             "finance_tracker_v2.db"
         )
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
         .build()
     }
 }

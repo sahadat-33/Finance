@@ -78,9 +78,9 @@ fun TimelineScreen(
                                 tx.amount.toString().contains(searchLower)
             
             val matchesFilter = when (filterType) {
-                "Income" -> tx.type == "INCOME" && tx.categoryName != "Savings"
-                "Expense" -> tx.type == "EXPENSE" && tx.categoryName != "Savings"
-                "Savings Withdrawals" -> tx.type == "INCOME" && tx.categoryName == "Savings"
+                "Income" -> tx.type == "INCOME" && tx.categoryName != "Savings" && tx.categoryName != "Goal Savings"
+                "Expense" -> tx.type == "EXPENSE" && tx.categoryName != "Savings" && tx.categoryName != "Goal Savings"
+                "Savings Withdrawals" -> tx.type == "INCOME" && (tx.categoryName == "Savings" || tx.categoryName == "Goal Savings")
                 else -> true
             }
 

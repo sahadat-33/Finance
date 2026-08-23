@@ -66,7 +66,7 @@ fun AnalyticsScreen(viewModel: FinanceViewModel) {
                 MonthBarData(
                     label = label,
                     income = monthTx.filter { it.type == "INCOME" }.sumOf { it.amount },
-                    expense = monthTx.filter { it.type == "EXPENSE" && it.categoryName != "Savings" }.sumOf { it.amount },
+                    expense = monthTx.filter { it.type == "EXPENSE" && it.categoryName != "Savings" && it.categoryName != "Goal Savings" }.sumOf { it.amount },
                     month = index,
                     year = selectedYear
                 )
